@@ -69,31 +69,36 @@ data Css2SelectorSingle
   deriving (Show, Eq)
 
 
+newtype Css2Selector = Css2Selector { getCss2Selector :: [Css2SelectorSingle] }
+  deriving (Show, Eq)
+
+
+parseCss2Selector :: Parser Css2Selector
+parseCss2Selector = Css2Selector <$> sepBy parseCss2SelectorSingle (char ',')
+
+
 parseCss2SelectorSingle :: Parser Css2SelectorSingle
 parseCss2SelectorSingle = do
+  skipSpace
   ms <- parseMaybe parseSpecifier
   case ms of
     Nothing -> pure Nil
     Just s  -> do
       f <- do
+        skipSpace
         let parseChild = do
-              skipSpace
               void $ string ">"
               skipSpace
               pure $ Child s
             parseImmediatelyBefore = do
-              skipSpace
               void $ string "+"
               skipSpace
               pure $ HasImmediatelyBefore s
             parseBefore = do
-              skipSpace
               void $ string "~"
               skipSpace
               pure $ HasBefore s
-            parseDescendant = do
-              void space
-              skipSpace
+            parseDescendant =
               pure $ Descendant s
         parseChild <|> parseImmediatelyBefore <|> parseBefore <|> parseDescendant
       f <$> parseCss2SelectorSingle
@@ -106,7 +111,9 @@ parseSpecifier = do
   cs <- many parseClass
   as <- many parseAttribute
   p  <- parseMaybe $ eitherP parsePseudoClass parsePseudoElement
-  pure $ Specifier n i cs as p
+  case (n,i,cs,as,p) of
+    (Nothing, Nothing, [], [], Nothing) -> fail "No specifier"
+    _ -> pure $ Specifier n i cs as p
   where
     parseElement       = Element <$> parseToken
     parseIdent         = Ident   <$> (char '#' >> parseToken)
