@@ -84,23 +84,22 @@ parseCss2SelectorSingle = do
   case ms of
     Nothing -> pure Nil
     Just s  -> do
-      f <- do
-        skipSpace
-        let parseChild = do
-              void $ string ">"
-              skipSpace
-              pure $ Child s
-            parseImmediatelyBefore = do
-              void $ string "+"
-              skipSpace
-              pure $ HasImmediatelyBefore s
-            parseBefore = do
-              void $ string "~"
-              skipSpace
-              pure $ HasBefore s
-            parseDescendant =
-              pure $ Descendant s
-        parseChild <|> parseImmediatelyBefore <|> parseBefore <|> parseDescendant
+      f <- do skipSpace
+              let parseChild = do
+                    void $ string ">"
+                    skipSpace
+                    pure $ Child s
+                  parseImmediatelyBefore = do
+                    void $ string "+"
+                    skipSpace
+                    pure $ HasImmediatelyBefore s
+                  parseBefore = do
+                    void $ string "~"
+                    skipSpace
+                    pure $ HasBefore s
+                  parseDescendant =
+                    pure $ Descendant s
+              parseChild <|> parseImmediatelyBefore <|> parseBefore <|> parseDescendant
       f <$> parseCss2SelectorSingle
 
 
