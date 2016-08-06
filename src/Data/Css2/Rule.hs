@@ -191,28 +191,22 @@ parseValue =
     -- ff
     parseWord8 :: Parser Word8
     parseWord8 = do
-        [hx1, hx2] <- replicateM 2 (satisfy isHex)
-        pure $ (fromChar hx1 * 16) + fromChar hx2
+      [hx1, hx2] <- replicateM 2 (satisfy isHex)
+      pure $ (fromChar hx1 * 16) + fromChar hx2
       where
-        -- FIXME: use a hex parser dummy
-        fromChar :: Num a => Char -> a
-        fromChar c | c == '0' = 0
-                   | c == '1' = 1
-                   | c == '2' = 2
-                   | c == '3' = 3
-                   | c == '4' = 4
-                   | c == '5' = 5
-                   | c == '6' = 6
-                   | c == '7' = 7
-                   | c == '8' = 8
-                   | c == '9' = 9
-                   | toLower c == 'a' = 10
-                   | toLower c == 'b' = 11
-                   | toLower c == 'c' = 12
-                   | toLower c == 'd' = 13
-                   | toLower c == 'e' = 14
-                   | toLower c == 'f' = 15
-
+        fromChar :: Char -> Word8
+        fromChar c
+          | isDigit c = read [c]
+          | toLower c `elem` ("abcdef" :: String) =
+            case toLower c of
+              'a' -> 10
+              'b' -> 11
+              'c' -> 12
+              'd' -> 13
+              'e' -> 14
+              'f' -> 15
+              _   -> error "not hexadecimal"
+          | otherwise = error "not hexadecimal"
 
     isHex :: Char -> Bool
     isHex c = isDigit c || elem (toLower c) ("abcdef" :: String)
