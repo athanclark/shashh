@@ -1,8 +1,18 @@
-module Css2.Rule where
+{-# LANGUAGE
+    GeneralizedNewtypeDeriving
+  , OverloadedStrings
+  #-}
+
+module Data.Css2.Rule where
 
 import Data.String
 import qualified Data.Text as T
 import Data.Word
+import Data.Char
+import Data.Attoparsec.Text
+import Text.Read (readMaybe)
+import Control.Applicative
+import Control.Monad
 
 
 newtype Rule = Rule { getRule :: T.Text }
@@ -16,7 +26,7 @@ data NumberUnit
   | In
   | Cm
   | Percent
-  | Other T.Text
+  | OtherUnit T.Text
   deriving (Show, Eq)
 
 parseNumberUnit :: Parser NumberUnit
@@ -30,7 +40,7 @@ parseNumberUnit =
   <|> anyToken
   where
     token s s' = s' <$ string s
-    anyToken = (Other . T.pack) <$> many1 (satisfy isToken')
+    anyToken = (OtherUnit . T.pack) <$> many1 (satisfy isToken')
     isToken' c = isAlphaNum c
 
 
@@ -205,7 +215,7 @@ parseValue =
 
 
     isHex :: Char -> Bool
-    isHex c = isDigit c || elem (toLower c) "abcdef"
+    isHex c = isDigit c || elem (toLower c) ("abcdef" :: String)
 
 
 isToken :: Char -> Bool
