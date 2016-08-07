@@ -99,7 +99,18 @@ parseValue =
     parseHex :: Parser Value
     parseHex = do
       void (char '#')
-      Hex <$> parseWord8 <*> parseWord8 <*> parseWord8 <*> parseMaybe parseWord8
+      six <|> three
+      where
+        six = Hex <$> parseWord8 <*> parseWord8 <*> parseWord8 <*> parseMaybe parseWord8
+        three = do
+          r <- satisfy isHex
+          g <- satisfy isHex
+          b <- satisfy isHex
+          a <- parseMaybe (satisfy isHex)
+          pure $ Hex (fromChar r * 16)
+                     (fromChar g * 16)
+                     (fromChar b * 16)
+                     (((*) 16 . fromChar) <$> a)
 
     parseRgb :: Parser Value
     parseRgb = noAlpha <|> withAlpha
@@ -107,24 +118,38 @@ parseValue =
         noAlpha :: Parser Value
         noAlpha = do
           void $ string "rgb("
+          skipSpace
           r <- parseWord8'
+          skipSpace
           void $ char ','
+          skipSpace
           g <- parseWord8'
+          skipSpace
           void $ char ','
+          skipSpace
           b <- parseWord8'
+          skipSpace
           void $ char ')'
           pure $ Rgb r g b Nothing
 
         withAlpha :: Parser Value
         withAlpha = do
           void $ string "rgba("
+          skipSpace
           r <- parseWord8'
+          skipSpace
           void $ char ','
+          skipSpace
           g <- parseWord8'
+          skipSpace
           void $ char ','
+          skipSpace
           b <- parseWord8'
+          skipSpace
           void $ char ','
+          skipSpace
           a <- parseWord8'
+          skipSpace
           void $ char ')'
           pure $ Rgb r g b (Just a)
 
@@ -134,29 +159,43 @@ parseValue =
         noAlpha :: Parser Value
         noAlpha = do
           void $ string "hsl("
+          skipSpace
           h <- parseWord8'
+          skipSpace
           void $ char ','
+          skipSpace
           s <- parseWord8'
+          skipSpace
           void $ char ','
+          skipSpace
           l <- parseWord8'
+          skipSpace
           void $ char ')'
           pure $ Hsl h s l Nothing
 
         withAlpha :: Parser Value
         withAlpha = do
           void $ string "hsla("
+          skipSpace
           h <- parseWord8'
+          skipSpace
           void $ char ','
+          skipSpace
           s <- parseWord8'
+          skipSpace
           void $ char ','
+          skipSpace
           l <- parseWord8'
+          skipSpace
           void $ char ','
+          skipSpace
           a <- parseWord8'
+          skipSpace
           void $ char ')'
           pure $ Hsl h s l (Just a)
 
     parseNumber :: Parser Value
-    parseNumber = Number <$> double <*> parseMaybe parseNumberUnit
+    parseNumber = Number <$> double <*> (skipSpace >> parseMaybe parseNumberUnit)
 
     parseUrl :: Parser Value
     parseUrl = do
@@ -193,20 +232,20 @@ parseValue =
     parseWord8 = do
       [hx1, hx2] <- replicateM 2 (satisfy isHex)
       pure $ (fromChar hx1 * 16) + fromChar hx2
-      where
-        fromChar :: Char -> Word8
-        fromChar c
-          | isDigit c = read [c]
-          | toLower c `elem` ("abcdef" :: String) =
-            case toLower c of
-              'a' -> 10
-              'b' -> 11
-              'c' -> 12
-              'd' -> 13
-              'e' -> 14
-              'f' -> 15
-              _   -> error "not hexadecimal"
-          | otherwise = error "not hexadecimal"
+
+    fromChar :: Char -> Word8
+    fromChar c
+      | isDigit c = read [c]
+      | toLower c `elem` ("abcdef" :: String) =
+        case toLower c of
+          'a' -> 10
+          'b' -> 11
+          'c' -> 12
+          'd' -> 13
+          'e' -> 14
+          'f' -> 15
+          _   -> error "not hexadecimal"
+      | otherwise = error "not hexadecimal"
 
     isHex :: Char -> Bool
     isHex c = isDigit c || elem (toLower c) ("abcdef" :: String)
